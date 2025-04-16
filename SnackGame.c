@@ -140,9 +140,17 @@ int main(){
 		window[targetY][targetX]='$';
 		setSnick();
 		setWindow();
-		Sleep(50);
+		#ifdef _WIN32
+			Sleep(50);
+		#else 
+			usleep(50000);
+		#endif
 		if(gameOver){
-			system("cls");
+			#ifdef _WIN32
+			    system("cls");
+			#else
+			    system("clear");
+			#endif
 		}
 	}
 	printf("\t\t gameOver !   your Score is %d",snickLength+1);
