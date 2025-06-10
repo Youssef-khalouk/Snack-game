@@ -1,10 +1,66 @@
 # include <stdio.h>
 # include <string.h>
 # include <stdlib.h>
-# include <conio.h>
 # include <unistd.h>
-# include <windows.h>
 # include <time.h>
+
+#if defined (__WIN32__)
+	# include <conio.h>
+	# include <windows.h>
+	
+	void enableVTMode(){
+		HANDLE hOut = GetStdHandle(STD-OUTPUT-HANDLE);
+		if(hOut == INVALID_HANDLE_VALUE) return;
+		DWORD dwMode = 0;
+		if (!GetConsoleMode(hOut, &dwMode)) return;
+		dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+		SetConsoleMode(hOut, dwMode);
+	}
+	
+#else
+	#include <termios.h>
+	#include <fcntl.h>
+
+	void enableRawMode() {
+		struct termios term;
+		tcgetattr(0, &term);
+		term.c_lflag &= ~(ICANON | ECHO); // Disable canonical mode and echo
+		tcsetattr(0, TCSANOW, &term);
+	}
+
+	void disableRawMode() {
+		struct termios term;
+		tcgetattr(0, &term);
+		term.c_lflag |= ICANON | ECHO; // Re-enable canonical mode and echo
+		tcsetattr(0, TCSANOW, &term);
+	}
+
+	int kbhit() {
+		struct termios oldt, newt;
+		int ch;
+		int oldf;
+
+		tcgetattr(0, &oldt);
+		newt = oldt;
+		newt.c_lflag &= ~(ICANON | ECHO);
+		tcsetattr(0, TCSANOW, &newt);
+		oldf = fcntl(0, F_GETFL, 0);
+		fcntl(0, F_SETFL, oldf | O_NONBLOCK);
+
+		ch = getchar();
+
+		tcsetattr(0, TCSANOW, &oldt);
+		fcntl(0, F_SETFL, oldf);
+
+		if(ch != EOF) {
+			ungetc(ch, stdin);
+			return 1;
+		}
+
+		return 0;
+	}
+
+#endif
 
 int width = 30;
 int height = 15;
@@ -17,19 +73,21 @@ int targetY = 0;
 char diraction = 'E';
 
 void setWindow(){
-	printf("\t\t Score : %d\n\t\t ",snickLength+1);
+	printf("    Score : %d",snickLength+1);
+	printf("\n");
+	printf("    ");
 	for (int x = 0;x<width;x++){
 		printf("-");
 	}
 	printf("\n");
 	for(int i=0; i<height; i++){
-		printf("\t\t|");
+		printf("    |");
 		for(int j=0; j<width;j++){
 			printf("%c",window[i][j]);
 		}
 		printf("|\n");
 	}
-	printf("\t\t ");
+	printf("    ");
 	for (int x = 0;x<width;x++){
 		printf("-");
 	}
@@ -112,24 +170,28 @@ void moveAndCkeak(){
 	}
 }
 void inputListener(){
-	// if keyPressed => key
 	if (kbhit()){
-		switch(getch()){
-		case 'w':
-			diraction = 'N';
-			break;
-		case 's':
-			diraction = 'S';
-			break;
-		case 'd':
-			diraction = 'E';
-			break;
-		case 'a':
-			diraction = 'W';
-		}
+		#ifdef _WIN32
+			int ch = getch();
+		#else
+			int ch = getchar();
+		#endif
+		switch(ch){
+			case 'w': diraction = 'N'; break;
+			case 's': diraction = 'S'; break;
+			case 'd': diraction = 'E'; break;
+			case 'a': diraction = 'W'; break;
+			case 'x': gameOver = 0; break;
+		}	
 	}
 }
 int main(){
+	#ifdef _WIN32
+		enableVTMode();
+	#else
+		enableRawMode();
+	#endif
+
 	srand(time(0));
 	cleanWindow();
 	setTarget();
@@ -141,20 +203,19 @@ int main(){
 		setSnick();
 		setWindow();
 		#ifdef _WIN32
-			Sleep(50);
+			Sleep(200);
 		#else 
-			usleep(50000);
+			usleep(200000);
 		#endif
 		if(gameOver){
-			#ifdef _WIN32
-			    system("cls");
-			#else
-			    system("clear");
-			#endif
+			for(int i = 0; i< height +3; i++) { printf("\033[1A"); }
 		}
 	}
-	printf("\t\t gameOver !   your Score is %d",snickLength+1);
-	getch();
+	printf("    gameOver !   your Score is %d\n",snickLength+1);
+	
+	#ifndef _WIN32
+		disableRawMode();
+	#endif
 	return 0;
 }
 
