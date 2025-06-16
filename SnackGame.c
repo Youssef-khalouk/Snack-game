@@ -62,9 +62,9 @@
 
 #endif
 
-int width = 30;
-int height = 15;
-char window[15][30];
+int width = 40;
+int height = 20;
+char window[20][40];
 int snickLength = 2;
 int snick [100][2] = {{5,5},{5,4},{5,3}};
 int gameOver = 1;
