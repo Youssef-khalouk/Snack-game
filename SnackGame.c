@@ -75,7 +75,7 @@ char diraction = 'E';
 void setWindow(){
 	printf("    Score : %d",snickLength+1);
 	printf("\n");
-	printf("    ");
+	printf("     ");
 	for (int x = 0;x<width;x++){
 		printf("-");
 	}
@@ -87,7 +87,7 @@ void setWindow(){
 		}
 		printf("|\n");
 	}
-	printf("    ");
+	printf("     ");
 	for (int x = 0;x<width;x++){
 		printf("-");
 	}
